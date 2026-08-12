@@ -1,7 +1,7 @@
 # Research: Agent Chat App
 
 **Feature**: `001-agent-chat-app`  
-**Date**: 2026-08-12 (rev. 2)
+**Date**: 2026-08-12 (rev. 3)
 
 ## Decision 0: Native AG-UI integration — no custom bridge (PRIMARY)
 
@@ -36,9 +36,9 @@
 
 ## Decision 3: Frontend — HttpAgent points at Agno `/agui`
 
-**Decision**: `NEXT_PUBLIC_AGUI_AGENT_URL=http://localhost:7777/agui` (full URL, assistant-ui convention).
+**Decision**: `NEXT_PUBLIC_AGUI_AGENT_URL=http://localhost:7777/agui` (full URL). Health/Makefile/tests use `BACKEND_BASE_URL=http://localhost:7777` (backend root). Both MUST target the same instance (SC-003).
 
-**Rationale**: Matches [with-ag-ui README](https://github.com/assistant-ui/assistant-ui/blob/main/examples/with-ag-ui/README.md). Health checks use separate `curl` to `/status` — not routed through chat client.
+**Rationale**: Matches [with-ag-ui README](https://github.com/assistant-ui/assistant-ui/blob/main/examples/with-ag-ui/README.md). Separates chat client URL from health/test tooling without hardcoding host/port in Makefile.
 
 ## Decision 4: Single global thread
 
@@ -70,4 +70,4 @@
 
 ## Resolved NEEDS CLARIFICATION
 
-All items resolved. Rev 2 adds explicit "no custom bridge" constraint.
+All items resolved. Rev 3 adds `BACKEND_BASE_URL`, pinned `versions.json`, and analyze-report remediations.

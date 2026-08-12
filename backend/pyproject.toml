@@ -1,0 +1,26 @@
+[project]
+name = "agent-chat-backend"
+version = "0.1.0"
+description = "Agno AgentOS + AGUI backend for agent chat app"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "agno[os,agui]>=0.16.0",
+    "openai>=1.0.0",
+    "httpx>=0.27.0",
+    "pytest>=8.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "integration: tests that require a live backend at BACKEND_BASE_URL",
+]

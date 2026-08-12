@@ -15,7 +15,8 @@
     "agno-agui": {
       "source": "https://docs.agno.com/agent-os/interfaces/ag-ui/introduction",
       "python_package": "agno[os,agui]",
-      "python_version": ">=0.16.0"
+      "python_version": ">=0.16.0",
+      "resolved_version": "2.8.7"
     }
   },
   "llm": {

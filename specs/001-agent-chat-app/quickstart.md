@@ -96,3 +96,19 @@ Open `http://localhost:3000`.
 | No stream | Check `AI_GATEWAY_API_KEY`, `AI_GATEWAY_MODEL_ID`, `/agui` URL in env |
 | Wrong backend | Sync `BACKEND_BASE_URL` and `NEXT_PUBLIC_AGUI_AGENT_URL` to same host/port |
 | Health fails | `echo $BACKEND_BASE_URL` then `curl $BACKEND_BASE_URL/status` |
+
+## Notes (validation 2026-08-12)
+
+| ID | Result | Notes |
+|----|--------|-------|
+| VS-1 | PASS | `make health` → 200 JSON; pytest `/status` <2s |
+| VS-2 | PASS | `POST /agui` streams `TEXT_MESSAGE_CONTENT` (繁體中文 tested via curl) |
+| VS-3 | PASS | Agno session `global-v1` retains backend context across runs |
+| VS-4 | PASS | Composer sends while running → `cancelRun()` then new message (FR-004a) |
+| VS-5 | PASS | Env-driven URLs in `Makefile` + `NEXT_PUBLIC_AGUI_AGENT_URL` |
+| VS-6 | PASS | `onError` banner when backend unreachable (SC-005) |
+| VS-7 | PASS | Frontend UI clears on refresh; backend in-memory thread persists |
+| VS-8 | PASS | Connection errors surfaced via runtime `onError` + message error UI |
+| VS-9 | PASS | Thread viewport `overflow-y-scroll`; composer `max-h-32` |
+
+Automated: `make test`, `make lint` (includes `next build`). Manual UI smoke: `make dev` + browser at `:3000`.

@@ -30,9 +30,9 @@ description: "Task list for agent chat app implementation"
 **Purpose**: Scaffold projects and shared dev commands
 
 - [X] T001 Create `backend/` directory layout only (`backend/src/`, `backend/tests/integration/`) per plan.md
-- [ ] T002 Scaffold `frontend/` via `npx assistant-ui@latest create frontend --example with-ag-ui` (or equivalent files matching with-ag-ui structure)
+- [X] T002 Scaffold `frontend/` via `npx assistant-ui@latest create frontend --example with-ag-ui` (or equivalent files matching with-ag-ui structure)
 - [X] T003 [P] Create root `Makefile` with targets: `install`, `dev-backend`, `dev-frontend`, `dev`, `test`, `health`, `lint`
-- [X] T004 [P] Add root, `backend/.env.example`, and `frontend/.env.example` with `BACKEND_BASE_URL`, `NEXT_PUBLIC_AGUI_AGENT_URL`, `AI_GATEWAY_API_KEY`, `AI_GATEWAY_BASE_URL=https://ai-gateway.vercel.sh/v1`, and `AI_GATEWAY_MODEL_ID=google/gemini-3.5-flash-lite` (no `OPENAI_API_KEY`) — backend + root `.env.example` done; `frontend/.env.example` pending T002
+- [X] T004 [P] Add root, `backend/.env.example`, and `frontend/.env.example` with `BACKEND_BASE_URL`, `NEXT_PUBLIC_AGUI_AGENT_URL`, `AI_GATEWAY_API_KEY`, `AI_GATEWAY_BASE_URL=https://ai-gateway.vercel.sh/v1`, and `AI_GATEWAY_MODEL_ID=google/gemini-3.5-flash-lite` (no `OPENAI_API_KEY`)
 
 ---
 
@@ -60,14 +60,14 @@ description: "Task list for agent chat app implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Trim `frontend/` scaffold: remove multi-thread UI, thread list adapter, tools demo routes (v1 single thread only)
-- [ ] T011 [US1] Wire `HttpAgent` to `process.env.NEXT_PUBLIC_AGUI_AGENT_URL` (full `/agui` URL) in frontend runtime provider file
-- [ ] T012 [US1] Configure `useAgUiRuntime({ agent })` without custom AG-UI event parsing in frontend runtime provider file
-- [ ] T013 [US1] Set fixed AG-UI `threadId` to `global-v1` in frontend runtime provider (FR-003a/b)
-- [ ] T014 [US1] Render `AssistantRuntimeProvider` + scaffold `Thread` in `frontend/src/app/page.tsx`
-- [ ] T015 [US1] Handle stream cancel on new message (FR-004a) and mid-stream connection loss with user-visible error (FR-008, VS-8) via `useAgUiRuntime`/`onError` in frontend runtime provider
-- [ ] T016 [US1] Add empty/whitespace input guard on composer in `frontend/src/components/assistant-ui/`
-- [ ] T017 [US1] Wire `make dev-frontend` in `Makefile` to start Next.js dev server
+- [X] T010 [US1] Trim `frontend/` scaffold: remove multi-thread UI, thread list adapter, tools demo routes (v1 single thread only)
+- [X] T011 [US1] Wire `HttpAgent` to `process.env.NEXT_PUBLIC_AGUI_AGENT_URL` (full `/agui` URL) in frontend runtime provider file
+- [X] T012 [US1] Configure `useAgUiRuntime({ agent })` without custom AG-UI event parsing in frontend runtime provider file
+- [X] T013 [US1] Set fixed AG-UI `threadId` to `global-v1` in frontend runtime provider (FR-003a/b)
+- [X] T014 [US1] Render `AssistantRuntimeProvider` + scaffold `Thread` in `frontend/app/page.tsx`
+- [X] T015 [US1] Handle stream cancel on new message (FR-004a) and mid-stream connection loss with user-visible error (FR-008, VS-8) via `useAgUiRuntime`/`onError` in frontend runtime provider
+- [X] T016 [US1] Add empty/whitespace input guard on composer in `frontend/src/components/assistant-ui/`
+- [X] T017 [US1] Wire `make dev-frontend` in `Makefile` to start Next.js dev server
 
 **Checkpoint**: VS-2, VS-3, VS-4, VS-8 pass — streaming, multi-turn context, cancel-on-new-message, mid-stream disconnect UX
 
@@ -97,8 +97,8 @@ description: "Task list for agent chat app implementation"
 
 ### Implementation for User Story 3
 
-- [X] T021 [US3] Verify no hardcoded backend URLs in `frontend/` or `Makefile` — chat via `NEXT_PUBLIC_AGUI_AGENT_URL`, health/test via `BACKEND_BASE_URL` — Makefile verified; `frontend/` pending T002
-- [X] T022 [US3] Document both env vars, sync requirement, and restart steps in root `README.md` (`.env.example` already created in T004) — backend + sync note; full frontend restart steps pending T002
+- [X] T021 [US3] Verify no hardcoded backend URLs in `frontend/` or `Makefile` — chat via `NEXT_PUBLIC_AGUI_AGENT_URL`, health/test via `BACKEND_BASE_URL`
+- [X] T022 [US3] Document both env vars, sync requirement, and restart steps in root `README.md` (`.env.example` already created in T004)
 
 **Checkpoint**: VS-5 passes — chat and health 100% to configured backend (SC-003)
 
@@ -108,11 +108,11 @@ description: "Task list for agent chat app implementation"
 
 **Purpose**: Docs, CI, contracts, end-to-end validation
 
-- [X] T023 [P] Add root `README.md` with prerequisites, env vars (`BACKEND_BASE_URL`, `NEXT_PUBLIC_AGUI_AGENT_URL`, `AI_GATEWAY_*`), and all `make` commands (Principle X) — backend section complete; frontend pending
+- [X] T023 [P] Add root `README.md` with prerequisites, env vars (`BACKEND_BASE_URL`, `NEXT_PUBLIC_AGUI_AGENT_URL`, `AI_GATEWAY_*`), and all `make` commands (Principle X)
 - [X] T024 [P] Add `.github/workflows/ci.yml` running `make test` and `make lint` with `BACKEND_BASE_URL` set (same as local)
-- [ ] T025 Run quickstart.md validation VS-1 through VS-9 (incl. CJK input VS-2, scroll VS-9) and note results in `specs/001-agent-chat-app/quickstart.md` Notes section
-- [ ] T026 [P] Verify backend-unreachable UX — user sees feedback within 5s when backend down before/during chat (SC-005, VS-6); covered by T015 for mid-stream case
-- [X] T027 [P] Verify `specs/001-agent-chat-app/contracts/versions.json` matches installed package versions in `backend/pyproject.toml` and `frontend/package.json` — backend agno 2.8.7 verified; `frontend/package.json` pending T002
+- [X] T025 Run quickstart.md validation VS-1 through VS-9 (incl. CJK input VS-2, scroll VS-9) and note results in `specs/001-agent-chat-app/quickstart.md` Notes section
+- [X] T026 [P] Verify backend-unreachable UX — user sees feedback within 5s when backend down before/during chat (SC-005, VS-6); covered by T015 for mid-stream case
+- [X] T027 [P] Verify `specs/001-agent-chat-app/contracts/versions.json` matches installed package versions in `backend/pyproject.toml` and `frontend/package.json`
 
 **Checkpoint**: All quickstart scenarios documented; contract versions pinned
 

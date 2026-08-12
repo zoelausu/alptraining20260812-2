@@ -32,7 +32,7 @@ description: "Task list for agent chat app implementation"
 - [ ] T001 Create `backend/` directory layout only (`backend/src/`, `backend/tests/integration/`) per plan.md
 - [ ] T002 Scaffold `frontend/` via `npx assistant-ui@latest create frontend --example with-ag-ui` (or equivalent files matching with-ag-ui structure)
 - [ ] T003 [P] Create root `Makefile` with targets: `install`, `dev-backend`, `dev-frontend`, `dev`, `test`, `health`, `lint`
-- [ ] T004 [P] Add root `.env.example` and `frontend/.env.example` with `BACKEND_BASE_URL=http://localhost:7777` and `NEXT_PUBLIC_AGUI_AGENT_URL=http://localhost:7777/agui`
+- [ ] T004 [P] Add root, `backend/.env.example`, and `frontend/.env.example` with `BACKEND_BASE_URL`, `NEXT_PUBLIC_AGUI_AGENT_URL`, `AI_GATEWAY_API_KEY`, `AI_GATEWAY_BASE_URL=https://ai-gateway.vercel.sh/v1`, and `AI_GATEWAY_MODEL_ID=google/gemini-3.1-flash-lite` (no `OPENAI_API_KEY`)
 
 ---
 
@@ -42,8 +42,8 @@ description: "Task list for agent chat app implementation"
 
 **⚠️ CRITICAL**: No user story work until this phase completes
 
-- [ ] T005 Add `backend/pyproject.toml` with pinned `agno[os,agui]` and model provider per `specs/001-agent-chat-app/contracts/versions.json`
-- [ ] T006 Implement `backend/src/app.py` — Agno cookbook AGUI pattern: `Agent` + `AgentOS(agents=[...], interfaces=[AGUI(agent=...)])` + `agent_os.get_app()`
+- [ ] T005 Add `backend/pyproject.toml` with pinned `agno[os,agui]` per `contracts/versions.json` (no direct OpenAI provider dependency)
+- [ ] T006 Implement `backend/src/app.py` — Agno AGUI pattern with `OpenAILike` reading `AI_GATEWAY_*` env vars (default model `google/gemini-3.1-flash-lite` via gateway) + `AgentOS` + `AGUI`; MUST NOT use `OpenAIResponses` or `OPENAI_API_KEY`
 - [ ] T007 Configure agent `instructions` for language-follow-input in `backend/src/app.py` (FR-002a)
 - [ ] T008 Enable CORS for `http://localhost:3000` and structured JSON logging with `thread_id`/`run_id` fields on AGUI runs in `backend/src/app.py` (Constitution VI)
 - [ ] T009 Wire `make dev-backend` in `Makefile` to run `agent_os.serve(app="app:app", reload=True)` using `AGENT_OS_PORT` (default 7777)
@@ -108,7 +108,7 @@ description: "Task list for agent chat app implementation"
 
 **Purpose**: Docs, CI, contracts, end-to-end validation
 
-- [ ] T023 [P] Add root `README.md` with prerequisites, env vars (`BACKEND_BASE_URL`, `NEXT_PUBLIC_AGUI_AGENT_URL`), and all `make` commands (Principle X)
+- [ ] T023 [P] Add root `README.md` with prerequisites, env vars (`BACKEND_BASE_URL`, `NEXT_PUBLIC_AGUI_AGENT_URL`, `AI_GATEWAY_*`), and all `make` commands (Principle X)
 - [ ] T024 [P] Add `.github/workflows/ci.yml` running `make test` and `make lint` with `BACKEND_BASE_URL` set (same as local)
 - [ ] T025 Run quickstart.md validation VS-1 through VS-9 (incl. CJK input VS-2, scroll VS-9) and note results in `specs/001-agent-chat-app/quickstart.md` Notes section
 - [ ] T026 [P] Verify backend-unreachable UX — user sees feedback within 5s when backend down before/during chat (SC-005, VS-6); covered by T015 for mid-stream case
@@ -165,6 +165,7 @@ Task T010: frontend scaffold trim
 - `frontend/src/lib/config.ts` URL builder
 - `test_agui_stream.py` hand-parsing AG-UI events
 - Hand-maintained OpenAPI duplicate of ag-ui-protocol
+- Direct `OpenAIResponses` / `OPENAI_API_KEY` — use Vercel AI Gateway via `OpenAILike` only
 
 ---
 

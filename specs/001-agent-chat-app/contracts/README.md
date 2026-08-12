@@ -37,8 +37,11 @@ Default base: `http://localhost:7777` (`BACKEND_BASE_URL` or `AGENT_OS_PORT`).
 |---------|---------|---------|
 | `NEXT_PUBLIC_AGUI_AGENT_URL` | `http://localhost:7777/agui` | Frontend `HttpAgent.url` — full chat endpoint |
 | `BACKEND_BASE_URL` | `http://localhost:7777` | Health check, `make health`, integration tests — backend root (no path) |
+| `AI_GATEWAY_API_KEY` | `vck_...` | Vercel AI Gateway credential (backend only) |
+| `AI_GATEWAY_BASE_URL` | `https://ai-gateway.vercel.sh/v1` | Gateway OpenAI-compatible base URL |
+| `AI_GATEWAY_MODEL_ID` | `google/gemini-3.1-flash-lite` | Model slug routed through gateway |
 
-Both MUST target the same backend instance (SC-003, FR-007).
+`BACKEND_BASE_URL` and `NEXT_PUBLIC_AGUI_AGENT_URL` MUST target the same backend instance (SC-003, FR-007). LLM config is pinned in [versions.json](./versions.json) `llm` section.
 
 ## v1 spec constraints on the protocol (configuration only)
 

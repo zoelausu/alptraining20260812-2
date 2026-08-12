@@ -1,7 +1,7 @@
 # Research: Agent Chat App
 
 **Feature**: `001-agent-chat-app`  
-**Date**: 2026-08-12 (rev. 3)
+**Date**: 2026-08-12 (rev. 4)
 
 ## Decision 0: Native AG-UI integration — no custom bridge (PRIMARY)
 
@@ -60,7 +60,18 @@
 
 **Decision**: `GET /status` on AGUI router; HTTP 200 + parseable JSON = pass. No LLM probe.
 
-## Decision 8: Testing
+## Decision 9: LLM — Vercel AI Gateway + Gemini Flash Lite (not OpenAI direct)
+
+**Decision**: Backend agent uses Agno `OpenAILike` with:
+- `base_url`: `https://ai-gateway.vercel.sh/v1` (`AI_GATEWAY_BASE_URL`)
+- `api_key`: `AI_GATEWAY_API_KEY`
+- `id`: `google/gemini-3.1-flash-lite` (`AI_GATEWAY_MODEL_ID`)
+
+**Rationale**: User preference; Vercel AI Gateway exposes OpenAI-compatible Chat Completions API ([docs](https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions)). Agno has no native Gateway class yet; `OpenAILike` is the supported adapter — no custom bridge.
+
+**Rejected**: `OpenAIResponses` + `OPENAI_API_KEY`; direct `agno.models.google.Gemini` (bypasses user's gateway billing/routing).
+
+## Decision 10: Testing
 
 **Decision**:
 - Automated: `test_status.py` only (owned boundary we expose for spec FR-006).
@@ -70,4 +81,4 @@
 
 ## Resolved NEEDS CLARIFICATION
 
-All items resolved. Rev 3 adds `BACKEND_BASE_URL`, pinned `versions.json`, and analyze-report remediations.
+All items resolved. Rev 4 adds Vercel AI Gateway + Gemini Flash Lite model stack.

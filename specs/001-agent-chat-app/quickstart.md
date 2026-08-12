@@ -7,7 +7,7 @@
 
 - Node.js 20+, pnpm
 - Python 3.11+, uv
-- `OPENAI_API_KEY` (if using OpenAI model in Agno agent)
+- Vercel AI Gateway API key (`AI_GATEWAY_API_KEY`) — **not** OpenAI direct
 
 ## Scaffold (recommended — don't start from scratch)
 
@@ -26,8 +26,10 @@ Trim scaffold to v1 scope: remove multi-thread UI, tools demo, extra example rou
 ## Environment
 
 ```bash
-# Backend
-export OPENAI_API_KEY=sk-...
+# Backend — Vercel AI Gateway (Gemini Flash Lite)
+export AI_GATEWAY_API_KEY=vck_...
+export AI_GATEWAY_BASE_URL=https://ai-gateway.vercel.sh/v1
+export AI_GATEWAY_MODEL_ID=google/gemini-3.1-flash-lite
 export AGENT_OS_PORT=7777
 export BACKEND_BASE_URL=http://localhost:7777
 
@@ -91,6 +93,6 @@ Open `http://localhost:3000`.
 | Symptom | Fix |
 |---------|-----|
 | CORS | Enable CORS on AgentOS for `localhost:3000` |
-| No stream | Check `OPENAI_API_KEY`, `/agui` URL in env |
+| No stream | Check `AI_GATEWAY_API_KEY`, `AI_GATEWAY_MODEL_ID`, `/agui` URL in env |
 | Wrong backend | Sync `BACKEND_BASE_URL` and `NEXT_PUBLIC_AGUI_AGENT_URL` to same host/port |
 | Health fails | `echo $BACKEND_BASE_URL` then `curl $BACKEND_BASE_URL/status` |

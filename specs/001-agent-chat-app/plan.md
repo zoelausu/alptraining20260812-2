@@ -52,8 +52,16 @@ Both MUST target the same backend instance.
 **Language/Version**: Python 3.11+ (backend), TypeScript / Node 20+ (frontend)
 
 **Primary Dependencies**:
-- Backend: `agno[os,agui]` + model provider (e.g. `openai`)
+- Backend: `agno[os,agui]` + Vercel AI Gateway via Agno `OpenAILike` (OpenAI-compatible Chat Completions API)
 - Frontend: `@assistant-ui/react`, `@assistant-ui/react-ag-ui`, `@ag-ui/client` (via with-ag-ui scaffold)
+
+**LLM configuration** (no direct OpenAI):
+
+| Env var | Default | Purpose |
+|---------|---------|---------|
+| `AI_GATEWAY_API_KEY` | — | Vercel AI Gateway credential |
+| `AI_GATEWAY_BASE_URL` | `https://ai-gateway.vercel.sh/v1` | Gateway OpenAI-compatible base URL |
+| `AI_GATEWAY_MODEL_ID` | `google/gemini-3.1-flash-lite` | Model slug passed to gateway |
 
 **Storage**: None — Agno agent in-memory session; assistant-ui runtime holds UI state
 
@@ -138,13 +146,19 @@ Makefile
 
 ```python
 # backend/src/app.py — pattern from Agno AG-UI docs / cookbook 16_agui
+import os
+
 from agno.agent import Agent
-from agno.models.openai import OpenAIResponses
+from agno.models.openai import OpenAILike
 from agno.os import AgentOS
 from agno.os.interfaces.agui import AGUI
 
 chat_agent = Agent(
-    model=OpenAIResponses(id="gpt-4o"),
+    model=OpenAILike(
+        id=os.environ["AI_GATEWAY_MODEL_ID"],  # google/gemini-3.1-flash-lite
+        api_key=os.environ["AI_GATEWAY_API_KEY"],
+        base_url=os.environ.get("AI_GATEWAY_BASE_URL", "https://ai-gateway.vercel.sh/v1"),
+    ),
     instructions="Respond in the same language the user uses.",
 )
 

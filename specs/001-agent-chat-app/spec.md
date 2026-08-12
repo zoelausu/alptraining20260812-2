@@ -120,7 +120,7 @@
 - 目標使用者為開發者或內部測試人員，在本地單人環境使用；非對外 production 服務，不支援多使用者並發。
 - Backend 維護單一全域 in-memory thread（`threadId=global-v1`），無 per-user session ID、cookie 或 per-tab 隔離機制。
 - 前端頁面重新整理後 UI 清空，但 backend 全域 thread 記憶體在程序重啟前仍保留。
-- 「Agent」指 backend 上負責產生回覆的邏輯；具體模型或供應商不在本規格範圍，由實作階段決定。
+- 「Agent」指 backend 上負責產生回覆的邏輯；v1 實作使用 Vercel AI Gateway（OpenAI-compatible API）路由至 `google/gemini-3.1-flash-lite`，不使用 direct OpenAI。
 - 網路連線穩定足以支援串流；極端離線情境以錯誤回饋處理即可。
 - 繁體中文涵蓋常用 CJK 字元顯示與輸入，無需額外語系切換功能；agent 回覆語言跟隨使用者輸入語言，非固定單一語系。
 - Health/status endpoint 無需認證（與 v1 無登入一致），且僅反映 backend HTTP 程序存活，不反映 agent/LLM 是否可用。

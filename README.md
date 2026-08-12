@@ -2,49 +2,50 @@
 
 Simple agent chat: assistant-ui frontend + Agno AgentOS/AGUI backend (native AG-UI protocol).
 
-## Backend (implemented)
+## Prerequisites
 
-### Prerequisites
+- Python 3.11+, [uv](https://docs.astral.sh/uv/)
+- Node.js 20+, npm
 
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/)
+## Environment
 
-### Environment
+Copy examples and set values:
 
-Copy `backend/.env.example` to `backend/.env` and set:
+- `backend/.env.example` → `backend/.env`
+- `frontend/.env.example` → `frontend/.env.local`
 
-| Variable | Example | Purpose |
+| Variable | Example | Used by |
 |----------|---------|---------|
-| `AI_GATEWAY_API_KEY` | `vck_...` | Vercel AI Gateway credential |
-| `AI_GATEWAY_BASE_URL` | `https://ai-gateway.vercel.sh/v1` | Gateway OpenAI-compatible base URL |
-| `AI_GATEWAY_MODEL_ID` | `google/gemini-3.5-flash-lite` | Model routed through gateway |
-| `AGENT_OS_PORT` | `7777` | AgentOS listen port |
-| `BACKEND_BASE_URL` | `http://localhost:7777` | Health check / tests (backend root) |
+| `AI_GATEWAY_API_KEY` | `vck_...` | Backend (chat) |
+| `AI_GATEWAY_BASE_URL` | `https://ai-gateway.vercel.sh/v1` | Backend |
+| `AI_GATEWAY_MODEL_ID` | `google/gemini-3.5-flash-lite` | Backend |
+| `AGENT_OS_PORT` | `7777` | Backend listen port |
+| `BACKEND_BASE_URL` | `http://localhost:7777` | Health check, tests |
+| `NEXT_PUBLIC_AGUI_AGENT_URL` | `http://localhost:7777/agui` | Frontend chat |
 
-Chat uses `POST /agui` and health uses `GET /status` (Agno AGUI built-in).
+`BACKEND_BASE_URL` and `NEXT_PUBLIC_AGUI_AGENT_URL` must target the same backend host/port. After changing frontend env, restart the Next.js dev server.
 
-### Commands
+## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `make install` | Install backend dependencies |
-| `make dev-backend` | Start AgentOS on `AGENT_OS_PORT` |
+| `make install` | Install backend + frontend dependencies |
+| `make dev-backend` | AgentOS on `:7777` (`POST /agui`, `GET /status`) |
+| `make dev-frontend` | Next.js dev server on `:3000` |
 | `make health` | `curl ${BACKEND_BASE_URL}/status` |
-| `make test` | Run `pytest` (in-process `/status` tests) |
-| `make lint` | Python compile check |
+| `make test` | Backend `/status` pytest |
+| `make lint` | Backend compile check + frontend production build |
 
-### Run backend
+## Run locally
 
 ```bash
 make install
-export AI_GATEWAY_API_KEY=vck_...
-make dev-backend
-make health
+# set AI_GATEWAY_API_KEY in backend/.env or export
+make dev-backend   # terminal 1
+make dev-frontend  # terminal 2
 ```
 
-## Frontend (pending)
-
-Run `/speckit-implement` for frontend tasks (T010–T017). When frontend exists, set `NEXT_PUBLIC_AGUI_AGENT_URL=http://localhost:7777/agui` to match `BACKEND_BASE_URL` (same host/port; SC-003).
+Open http://localhost:3000
 
 ## Spec
 

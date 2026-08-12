@@ -5,12 +5,16 @@
     "ag-ui-protocol": {
       "source": "https://github.com/ag-ui-protocol/ag-ui",
       "npm_client": "@ag-ui/client",
-      "npm_version": "^0.1.0"
+      "npm_version": "^0.0.57",
+      "resolved_version": "0.0.57"
     },
     "assistant-ui-ag-ui": {
       "source": "https://www.assistant-ui.com/docs/runtimes/ag-ui/quickstart",
       "npm_runtime": "@assistant-ui/react-ag-ui",
-      "npm_version": "latest"
+      "npm_version": "^0.0.54",
+      "resolved_version": "0.0.54",
+      "assistant_ui_react": "^0.15.14",
+      "assistant_ui_react_resolved": "0.15.14"
     },
     "agno-agui": {
       "source": "https://docs.agno.com/agent-os/interfaces/ag-ui/introduction",

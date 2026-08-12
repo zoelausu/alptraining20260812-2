@@ -31,7 +31,7 @@
 
 ## Notes
 
-- Validation iteration 1 (2026-08-12): All items pass.
+- Validation iteration 2 (2026-08-12): Post-clarify re-validation — all items still pass after 5 clarifications integrated.
 - Spec aligns with user-provided acceptance criteria: streaming chat, health endpoint, env-configurable backend URL.
 - v1 exclusions (login, DB, RAG, tools, uploads, production deploy) documented in FR-009–FR-012 and Out of Scope section.
 - Ready for `/speckit-plan` (or optional `/speckit-clarify` if stakeholders want refinement).

@@ -1,0 +1,124 @@
+openapi: 3.1.0
+info:
+  title: Agent Chat App — AgentOS AG-UI Interface
+  version: 1.0.0
+  description: |
+    v1 boundary contracts for the Agno AgentOS AGUI interface.
+    Full AG-UI event stream schema is defined by ag-ui-protocol; this document
+    captures the endpoints and status contract required by the feature spec.
+
+servers:
+  - url: http://localhost:7777
+    description: Local AgentOS default (AGENT_OS_PORT)
+
+paths:
+  /status:
+    get:
+      operationId: getAguiStatus
+      summary: AG-UI interface health/status
+      description: |
+        Returns parseable success when the backend HTTP process and AGUI router are alive.
+        Does NOT verify LLM/model connectivity (spec FR-006, clarify session).
+      tags: [health]
+      responses:
+        "200":
+          description: Service reachable and status parseable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+              examples:
+                ok:
+                  value:
+                    status: ok
+        "503":
+          description: Service not ready (if implemented)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+
+  /agui:
+    post:
+      operationId: runAguiAgent
+      summary: AG-UI agent run (streaming)
+      description: |
+        Main AG-UI entrypoint. Accepts RunAgentInput (ag-ui-protocol) and returns
+        Server-Sent Events stream of AG-UI protocol events.
+
+        v1 usage:
+        - Fixed session/thread: use session_id / threadId consistent with `global-v1`
+        - Single global thread shared by all clients
+        - Client may abort in-flight stream when user sends a new message
+
+        See: https://github.com/ag-ui-protocol/ag-ui
+      tags: [chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunAgentInput"
+      responses:
+        "200":
+          description: SSE stream of AG-UI events
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: AG-UI protocol events (TEXT_MESSAGE_*, RUN_*, etc.)
+        "400":
+          description: Invalid RunAgentInput
+        "500":
+          description: Agent run failed
+
+components:
+  schemas:
+    StatusResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          description: Machine-readable status (e.g. ok)
+          examples: [ok]
+        interface:
+          type: string
+          description: Optional interface identifier
+          examples: [agui]
+
+    RunAgentInput:
+      type: object
+      description: |
+        Subset of ag-ui-protocol RunAgentInput. Full schema owned by ag-ui-protocol package.
+        Backend reconciles at boundary; do not share mutable objects across layers.
+      required: [messages]
+      properties:
+        threadId:
+          type: string
+          description: Thread identifier; v1 uses fixed global thread
+          example: global-v1
+        runId:
+          type: string
+          description: Client-generated run id for correlation
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgUiMessage"
+        forwardedProps:
+          type: object
+          additionalProperties: true
+          description: Optional props (e.g. user_id for anonymous attribution)
+
+    AgUiMessage:
+      type: object
+      required: [role, content]
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+          description: UTF-8 text including Traditional Chinese

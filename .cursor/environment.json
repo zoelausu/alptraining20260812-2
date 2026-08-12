@@ -1,0 +1,8 @@
+{
+  "name": "agent-chat-app",
+  "install": "bash .cursor/scripts/install.sh",
+  "ports": [
+    { "name": "frontend", "port": 3000 },
+    { "name": "backend", "port": 7777 }
+  ]
+}

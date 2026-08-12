@@ -32,7 +32,7 @@ description: "Task list for agent chat app implementation"
 - [ ] T001 Create `backend/` directory layout only (`backend/src/`, `backend/tests/integration/`) per plan.md
 - [ ] T002 Scaffold `frontend/` via `npx assistant-ui@latest create frontend --example with-ag-ui` (or equivalent files matching with-ag-ui structure)
 - [ ] T003 [P] Create root `Makefile` with targets: `install`, `dev-backend`, `dev-frontend`, `dev`, `test`, `health`, `lint`
-- [ ] T004 [P] Add root, `backend/.env.example`, and `frontend/.env.example` with `BACKEND_BASE_URL`, `NEXT_PUBLIC_AGUI_AGENT_URL`, `AI_GATEWAY_API_KEY`, `AI_GATEWAY_BASE_URL=https://ai-gateway.vercel.sh/v1`, and `AI_GATEWAY_MODEL_ID=google/gemini-3.1-flash-lite` (no `OPENAI_API_KEY`)
+- [ ] T004 [P] Add root, `backend/.env.example`, and `frontend/.env.example` with `BACKEND_BASE_URL`, `NEXT_PUBLIC_AGUI_AGENT_URL`, `AI_GATEWAY_API_KEY`, `AI_GATEWAY_BASE_URL=https://ai-gateway.vercel.sh/v1`, and `AI_GATEWAY_MODEL_ID=google/gemini-3.5-flash-lite` (no `OPENAI_API_KEY`)
 
 ---
 
@@ -43,7 +43,7 @@ description: "Task list for agent chat app implementation"
 **⚠️ CRITICAL**: No user story work until this phase completes
 
 - [ ] T005 Add `backend/pyproject.toml` with pinned `agno[os,agui]` per `contracts/versions.json` (no direct OpenAI provider dependency)
-- [ ] T006 Implement `backend/src/app.py` — Agno AGUI pattern with `OpenAILike` reading `AI_GATEWAY_*` env vars (default model `google/gemini-3.1-flash-lite` via gateway) + `AgentOS` + `AGUI`; MUST NOT use `OpenAIResponses` or `OPENAI_API_KEY`
+- [ ] T006 Implement `backend/src/app.py` — Agno AGUI pattern with `OpenAILike` reading `AI_GATEWAY_*` env vars (default model `google/gemini-3.5-flash-lite` via gateway) + `AgentOS` + `AGUI`; MUST NOT use `OpenAIResponses` or `OPENAI_API_KEY`
 - [ ] T007 Configure agent `instructions` for language-follow-input in `backend/src/app.py` (FR-002a)
 - [ ] T008 Enable CORS for `http://localhost:3000` and structured JSON logging with `thread_id`/`run_id` fields on AGUI runs in `backend/src/app.py` (Constitution VI)
 - [ ] T009 Wire `make dev-backend` in `Makefile` to run `agent_os.serve(app="app:app", reload=True)` using `AGENT_OS_PORT` (default 7777)

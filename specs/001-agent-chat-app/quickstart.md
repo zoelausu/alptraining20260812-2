@@ -29,7 +29,7 @@ Trim scaffold to v1 scope: remove multi-thread UI, tools demo, extra example rou
 # Backend — Vercel AI Gateway (Gemini Flash Lite)
 export AI_GATEWAY_API_KEY=vck_...
 export AI_GATEWAY_BASE_URL=https://ai-gateway.vercel.sh/v1
-export AI_GATEWAY_MODEL_ID=google/gemini-3.1-flash-lite
+export AI_GATEWAY_MODEL_ID=google/gemini-3.5-flash-lite
 export AGENT_OS_PORT=7777
 export BACKEND_BASE_URL=http://localhost:7777
 

@@ -65,7 +65,7 @@
 **Decision**: Backend agent uses Agno `OpenAILike` with:
 - `base_url`: `https://ai-gateway.vercel.sh/v1` (`AI_GATEWAY_BASE_URL`)
 - `api_key`: `AI_GATEWAY_API_KEY`
-- `id`: `google/gemini-3.1-flash-lite` (`AI_GATEWAY_MODEL_ID`)
+- `id`: `google/gemini-3.5-flash-lite` (`AI_GATEWAY_MODEL_ID`)
 
 **Rationale**: User preference; Vercel AI Gateway exposes OpenAI-compatible Chat Completions API ([docs](https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions)). Agno has no native Gateway class yet; `OpenAILike` is the supported adapter — no custom bridge.
 

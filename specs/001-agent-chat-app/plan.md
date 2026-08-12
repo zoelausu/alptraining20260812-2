@@ -61,7 +61,7 @@ Both MUST target the same backend instance.
 |---------|---------|---------|
 | `AI_GATEWAY_API_KEY` | — | Vercel AI Gateway credential |
 | `AI_GATEWAY_BASE_URL` | `https://ai-gateway.vercel.sh/v1` | Gateway OpenAI-compatible base URL |
-| `AI_GATEWAY_MODEL_ID` | `google/gemini-3.1-flash-lite` | Model slug passed to gateway |
+| `AI_GATEWAY_MODEL_ID` | `google/gemini-3.5-flash-lite` | Model slug passed to gateway |
 
 **Storage**: None — Agno agent in-memory session; assistant-ui runtime holds UI state
 
@@ -155,7 +155,7 @@ from agno.os.interfaces.agui import AGUI
 
 chat_agent = Agent(
     model=OpenAILike(
-        id=os.environ["AI_GATEWAY_MODEL_ID"],  # google/gemini-3.1-flash-lite
+        id=os.environ["AI_GATEWAY_MODEL_ID"],  # google/gemini-3.5-flash-lite
         api_key=os.environ["AI_GATEWAY_API_KEY"],
         base_url=os.environ.get("AI_GATEWAY_BASE_URL", "https://ai-gateway.vercel.sh/v1"),
     ),

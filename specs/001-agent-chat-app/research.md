@@ -1,114 +1,73 @@
 # Research: Agent Chat App
 
 **Feature**: `001-agent-chat-app`  
-**Date**: 2026-08-12
+**Date**: 2026-08-12 (rev. 2)
 
-## Decision 1: Frontend — assistant-ui with AG-UI runtime
+## Decision 0: Native AG-UI integration — no custom bridge (PRIMARY)
 
-**Decision**: Use `@assistant-ui/react`, `@assistant-ui/react-ag-ui`, and `@ag-ui/client` (`HttpAgent`) as the chat UI and streaming transport.
-
-**Rationale**:
-- Spec requires streaming chat UI with Traditional Chinese input/display.
-- assistant-ui provides production-ready Thread/composer components and streaming message rendering.
-- `@assistant-ui/react-ag-ui` implements the AG-UI protocol adapter (`useAgUiRuntime`), matching Agno's native `AGUI` interface.
-- Official reference: [assistant-ui AG-UI quickstart](https://www.assistant-ui.com/docs/runtimes/ag-ui/quickstart) and [with-ag-ui example](https://github.com/assistant-ui/assistant-ui/tree/main/examples/with-ag-ui).
-
-**Alternatives considered**:
-- Custom React chat from scratch — rejected; duplicates streaming/state handling assistant-ui already solves.
-- Direct `POST /agents/{id}/stream` without AG-UI — rejected; assistant-ui AG-UI runtime is the user-requested stack and aligns with Agno's `AGUI` interface.
-
-## Decision 2: Backend — Agno SDK + AgentOS with AGUI interface
-
-**Decision**: Run `AgentOS` with `interfaces=[AGUI(agent=chat_agent)]`, default port `7777`.
+**Decision**: Connect assistant-ui to Agno via the **AG-UI protocol end-to-end**. Use each framework's built-in AG-UI support; zero custom protocol translation.
 
 **Rationale**:
-- User explicitly requested agno SDK and AgentOS.
-- `AGUI` exposes `POST /agui` (SSE streaming) and `GET /status` (health) per [Agno AG-UI docs](https://docs.agno.com/agent-os/interfaces/ag-ui/introduction).
-- AgentOS provides FastAPI server, agent lifecycle, and optional session APIs without adding a separate database for v1.
-- Install: `uv pip install 'agno[os,agui]'` (plus model provider package, e.g. `openai`).
+- [Agno AGUI interface](https://docs.agno.com/agent-os/interfaces/ag-ui/introduction) exposes `POST /agui` + `GET /status` as a standard AG-UI server.
+- [assistant-ui `@assistant-ui/react-ag-ui`](https://www.assistant-ui.com/docs/runtimes/ag-ui/quickstart) provides `HttpAgent` + `useAgUiRuntime` as a standard AG-UI client.
+- Both implement [ag-ui-protocol](https://github.com/ag-ui-protocol/ag-ui) — wiring them together is configuration, not engineering.
 
-**Alternatives considered**:
-- Raw FastAPI custom SSE endpoint — rejected; loses AgentOS agent management and AG-UI compliance.
-- AgentOS without AGUI + custom bridge — rejected; assistant-ui expects AG-UI protocol.
+**Alternatives considered (rejected — reinventing the wheel)**:
+- Custom FastAPI SSE endpoint translating to assistant-ui format — rejected.
+- AgentOS `/agents/{id}/stream` + custom frontend adapter — rejected; bypasses AG-UI on both sides.
+- Hand-written OpenAPI/event schemas duplicating ag-ui-protocol — rejected; reference upstream spec.
+- Custom `config.ts` URL/path assembly layer — rejected; `HttpAgent.url` accepts full endpoint URL via env.
 
-## Decision 3: Frontend ↔ Backend protocol — AG-UI over HTTP SSE
-
-**Decision**: Frontend `HttpAgent` targets `{BACKEND_URL}/agui` with `Accept: text/event-stream`.
-
-**Rationale**:
-- Agno mounts AG-UI at `POST /agui` by default (root prefix).
-- assistant-ui `HttpAgent` speaks AG-UI events (`TEXT_MESSAGE_*`, etc.) natively.
-- Health check uses `GET /status` on the same AGUI router (interface-level status).
-
-**Alternatives considered**:
-- AgentOS native `/agents/{id}/stream` — rejected for frontend; assistant-ui AG-UI runtime does not target that endpoint without custom adapter.
-
-## Decision 4: Single global thread (v1 session model)
-
-**Decision**: Use one fixed Agno session identifier (`session_id="global-v1"`) for all agent runs; disable multi-thread UI in assistant-ui (single thread, no thread list).
-
-**Rationale**:
-- Spec clarification: single global backend thread, no per-user/per-tab isolation.
-- Agno `run_agent` / AG-UI `RunAgentInput` supports `session_id` for in-memory conversation history on the agent side.
-- Frontend refresh clears UI only; backend retains history until process restart (spec assumption).
-
-**Alternatives considered**:
-- No session_id (stateless per request) — rejected; violates FR-003a (full context on each message).
-- Per-browser session_id — rejected; spec chose global shared thread (clarify session 2026-08-12).
-
-## Decision 5: Stream cancellation on new message
-
-**Decision**: Use assistant-ui runtime cancel/abort when user submits while streaming; frontend aborts in-flight `HttpAgent` request and sends new `POST /agui` run.
-
-**Rationale**:
-- Spec FR-004a: new message aborts current stream and starts new turn.
-- `useAgUiRuntime` supports `onCancel`; `HttpAgent` fetch can be aborted via `AbortController`.
-
-**Alternatives considered**:
-- Disable input during stream — rejected; contradicts clarify answer C.
-
-## Decision 6: Backend URL configuration
-
-**Decision**: Frontend reads `NEXT_PUBLIC_AGUI_BACKEND_URL` (base URL, e.g. `http://localhost:7777`); construct AG-UI URL as `${BASE}/agui` and status URL as `${BASE}/status`.
-
-**Rationale**:
-- Meets FR-007 (env-configurable without code change).
-- Matches assistant-ui convention (`NEXT_PUBLIC_AGUI_AGENT_URL` in examples); we use base URL + fixed paths for clarity and contract versioning.
-
-## Decision 7: Language follow input
-
-**Decision**: Configure agent system instructions to respond in the same language as the user message; no separate locale UI.
-
-**Rationale**:
-- FR-002a / clarify session: follow input language.
-- Implemented via Agno `Agent` instructions, not frontend i18n.
-
-## Decision 8: Health check scope
-
-**Decision**: Use `GET /status` from AGUI interface; success = HTTP 200 with parseable JSON body. Do not probe LLM connectivity.
-
-**Rationale**:
-- Matches spec clarify answer A and FR-006.
-- Agno documents `GET /status` on AGUI router.
-
-## Decision 9: Project layout and tooling
-
-**Decision**: Monorepo with `backend/` (Python/uv) and `frontend/` (Next.js/pnpm); root `Makefile` listing all commands for Principle X.
-
-**Rationale**:
-- Constitution Principle X: discoverable commands, local matches CI.
-- Web app naturally splits browser UI and Python agent server (independent compute: browser vs agent runtime).
-
-## Decision 10: Testing strategy
+## Decision 1: Scaffold from official examples
 
 **Decision**:
-- Integration: `curl`/`httpx` against `/status` and `/agui` (contract tests).
-- Frontend: Playwright or manual quickstart scenarios (boundary tests).
-- Unit: pure helpers only (message validation, URL builder).
+- Frontend: `npx assistant-ui@latest create frontend --example with-ag-ui`
+- Backend: Agno cookbook `cookbook/05_agent_os/16_agui` / docs basic.py pattern
 
-**Rationale**:
-- Constitution Principle V: test boundaries, not mock owned plumbing.
+**Rationale**: Official examples already solve streaming, event parsing, Thread UI, and AgentOS+AGUI boot. Custom code should be diff-from-example only (env, instructions, trim thread list).
+
+## Decision 2: Backend — AgentOS + AGUI only
+
+**Decision**: `AgentOS(agents=[chat_agent], interfaces=[AGUI(agent=chat_agent)])`, port 7777.
+
+**Rationale**: User-requested stack. AGUI is the Agno-native way to serve assistant-ui-compatible chat. Install: `uv pip install 'agno[os,agui]'`.
+
+**Rejected**: AgentOS without AGUI; separate health router (use `GET /status` on AGUI).
+
+## Decision 3: Frontend — HttpAgent points at Agno `/agui`
+
+**Decision**: `NEXT_PUBLIC_AGUI_AGENT_URL=http://localhost:7777/agui` (full URL, assistant-ui convention).
+
+**Rationale**: Matches [with-ag-ui README](https://github.com/assistant-ui/assistant-ui/blob/main/examples/with-ag-ui/README.md). Health checks use separate `curl` to `/status` — not routed through chat client.
+
+## Decision 4: Single global thread
+
+**Decision**: Fixed AG-UI `threadId` (e.g. `global-v1`); no `threadList` adapter; no custom session store.
+
+**Rationale**: Spec clarify session. AG-UI protocol already models threads; Agno maintains session history for the thread — use that, don't duplicate.
+
+## Decision 5: Stream cancellation
+
+**Decision**: Rely on assistant-ui `useAgUiRuntime` + `HttpAgent` abort/cancel (scaffold may already implement). No custom cancel API on backend.
+
+**Rationale**: FR-004a is a client-side abort of in-flight AG-UI run + new `POST /agui`. Protocol and runtime handle this; no Agno-specific cancel endpoint needed for v1.
+
+## Decision 6: Language follow input
+
+**Decision**: Agno `Agent(instructions="Respond in the same language the user uses.")` — one line, no i18n framework.
+
+## Decision 7: Health scope
+
+**Decision**: `GET /status` on AGUI router; HTTP 200 + parseable JSON = pass. No LLM probe.
+
+## Decision 8: Testing
+
+**Decision**:
+- Automated: `test_status.py` only (owned boundary we expose for spec FR-006).
+- Chat/streaming: quickstart manual scenarios or Playwright against real UI — **do not** parse AG-UI SSE in pytest.
+
+**Rationale**: Constitution V — test boundaries we own; AG-UI event stream is owned by ag-ui-protocol libraries.
 
 ## Resolved NEEDS CLARIFICATION
 
-All technical context items resolved; no open unknowns for Phase 1.
+All items resolved. Rev 2 adds explicit "no custom bridge" constraint.

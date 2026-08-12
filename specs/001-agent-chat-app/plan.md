@@ -1,157 +1,174 @@
 # Implementation Plan: Agent Chat App
 
-**Branch**: `001-agent-chat-app` | **Date**: 2026-08-12 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-agent-chat-app` | **Date**: 2026-08-12 (rev. 2) | **Spec**: [spec.md](./spec.md)
 
 **Input**: Feature specification from `/specs/001-agent-chat-app/spec.md`
 
-**User stack directive**: assistant-ui (frontend), Agno SDK + AgentOS with AGUI interface (backend).
+**User stack directive**: assistant-ui (frontend), Agno SDK + AgentOS with AGUI (backend).
 
 ## Summary
 
-Build a local-dev agent chat app: users send Traditional Chinese messages in a web UI and receive **streaming** agent replies in a **single global thread**. Backend is **Agno AgentOS** exposing the **AGUI** interface (`POST /agui`, `GET /status`). Frontend is **assistant-ui** connected via **AG-UI protocol** (`HttpAgent` + `useAgUiRuntime`). No login, database, RAG, tools, uploads, or production deployment in v1.
+A **native AG-UI wire-up** — no custom protocol layer, no SSE bridge, no message translation middleware.
+
+| Side | Use as-is | Do NOT build |
+|------|-----------|--------------|
+| **Backend** | Agno `AgentOS` + `AGUI` interface → `POST /agui`, `GET /status` | Custom FastAPI chat routes, hand-rolled SSE, `/agents/{id}/stream` adapter for UI |
+| **Frontend** | assistant-ui `HttpAgent` + `useAgUiRuntime` + `Thread` | Custom chat components, fetch-to-SSE parser, REST chat API client |
+| **Protocol** | [ag-ui-protocol](https://github.com/ag-ui-protocol/ag-ui) (both sides speak it) | Duplicate OpenAPI/event schemas, custom event types |
+
+v1 scope unchanged: Traditional Chinese chat, streaming replies, single global thread, health endpoint, env-configurable agent URL. No login, DB, RAG, tools, uploads, or production deploy.
+
+## Integration Strategy (core)
+
+```text
+assistant-ui Thread
+    → useAgUiRuntime (built-in AG-UI adapter)
+    → HttpAgent (@ag-ui/client)
+    → POST /agui (SSE, ag-ui-protocol events)
+    → Agno AGUI interface (built-in)
+    → AgentOS Agent (in-memory session)
+```
+
+**Scaffold from official examples, then trim:**
+
+1. **Frontend**: `npx assistant-ui@latest create frontend --example with-ag-ui` — already wires `HttpAgent` + `useAgUiRuntime` + `Thread`. We only change env URL and remove multi-thread UI if present.
+2. **Backend**: Agno cookbook `05_agent_os/16_agui` pattern — `AgentOS(agents=[...], interfaces=[AGUI(agent=...)])`. One file, no extra routers.
+
+**Spec-only customizations** (configuration, not new wheels):
+
+- Fixed `threadId` / session for global thread (via AG-UI `RunAgentInput` or Agno session — use what the protocol already carries).
+- Agent `instructions` for language-follow-input.
+- `NEXT_PUBLIC_AGUI_AGENT_URL` env → full AG-UI endpoint URL (assistant-ui convention).
 
 ## Technical Context
 
 **Language/Version**: Python 3.11+ (backend), TypeScript / Node 20+ (frontend)
 
 **Primary Dependencies**:
-- Backend: `agno[os,agui]`, model provider (e.g. `openai`), `uvicorn`
-- Frontend: `next`, `@assistant-ui/react`, `@assistant-ui/react-ag-ui`, `@ag-ui/client`
+- Backend: `agno[os,agui]` + model provider (e.g. `openai`)
+- Frontend: `@assistant-ui/react`, `@assistant-ui/react-ag-ui`, `@ag-ui/client` (via with-ag-ui scaffold)
 
-**Storage**: None (in-memory Agno session `global-v1`; no database)
+**Storage**: None — Agno agent in-memory session; assistant-ui runtime holds UI state
 
-**Testing**: `pytest` + `httpx` (backend integration/contract), `make health` smoke, manual/Playwright UI scenarios per quickstart
+**Testing**: `curl /status`; manual/E2E quickstart scenarios; **no custom AG-UI event parser tests** (protocol owned by libraries)
 
-**Target Platform**: Local development (Linux/macOS); browser for UI
+**Target Platform**: Local dev; browser + single AgentOS process
 
-**Project Type**: Web application (frontend + backend)
+**Project Type**: Web app — two runtimes (browser + Python), one protocol
 
-**Performance Goals**: Health &lt; 2s; error feedback &lt; 5s; first stream token visible within normal LLM latency (SC-001/SC-005)
-
-**Constraints**: Single global thread; stream cancel on new message; env-configurable backend URL; health = HTTP only
-
-**Scale/Scope**: Single developer local use; one concurrent active stream; no multi-user isolation
+**Constraints**: Single global thread; cancel-on-new-message via runtime defaults; health = `GET /status` only
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+*GATE: PASS*
 
-| Principle | Pre-Design | Post-Design | Notes |
-|-----------|------------|-------------|-------|
-| I. Do Not Distribute by Default | **Justified split** | **Justified** | Two runtimes: browser UI + Python AgentOS. Justification: genuinely independent compute (browser cannot host Agno agent). Not arbitrary microservices—one backend process + static/dev frontend. Documented in Complexity Tracking. |
-| II. Optimize for Deletion | Pass | Pass | Thin `backend/src/app.py`, minimal frontend wrapper around assistant-ui primitives. |
-| III. Explicit Dependencies | Pass | Pass | `HttpAgent` URL from env; agent model/key from env; no hidden globals. |
-| IV. Contract at Boundary | Pass | Pass | `contracts/ag-ui.openapi.yaml` + ag-ui-protocol at `/agui`. |
-| V. Test Transformation | Pass | Pass | Integration tests on `/status` and `/agui` boundary; no mocking owned HTTP layer in unit tests. |
-| VI. Structured Events | Partial | Partial | v1: use Agno structured logging where available; defer full observability stack (local dev scope). |
-| VII. Recovery | Pass | Pass | No DB migrations; revert = stop processes + git checkout. |
-| VIII. Attention Finite | N/A | N/A | No production alerts in v1 scope. |
-| IX. Value at User | Pass | Pass | quickstart defines deploy-to-browser validation. |
-| X. Commands Discoverable | Pass | Pass | Root `Makefile` with `install`, `dev`, `test`, `health`, `lint`. |
-
-**Gate result**: PASS (with documented Principle I justification).
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. No distribute by default | Justified | Browser + AgentOS = independent compute; one backend process, no extra services |
+| II. Deletion over extension | **Strong pass** | Rev 2 removes custom URL builders, custom stream tests, redundant contract schemas |
+| III. Explicit deps | Pass | Env vars only; no hidden singletons |
+| IV. Contract at boundary | Pass | Boundary = ag-ui-protocol + Agno `/status`; local contract file is a pointer, not a redefinition |
+| V. Test plumbing | Pass | Test `/status` boundary; E2E for chat; don't mock AG-UI libraries |
+| X. Commands | Pass | Makefile targets |
 
 ## Project Structure
 
-### Documentation (this feature)
+### Documentation
 
 ```text
 specs/001-agent-chat-app/
-├── plan.md              # This file
-├── research.md          # Phase 0
-├── data-model.md        # Phase 1
-├── quickstart.md        # Phase 1
-├── contracts/
-│   └── ag-ui.openapi.yaml
-└── tasks.md             # Phase 2 (/speckit-tasks)
+├── plan.md, research.md, data-model.md, quickstart.md
+├── contracts/README.md          # points to ag-ui-protocol + Agno docs
+└── tasks.md                       # /speckit-tasks
 ```
 
-### Source Code (repository root)
+### Source Code (minimal custom code)
 
 ```text
 backend/
 ├── pyproject.toml
 ├── src/
-│   └── app.py           # AgentOS + AGUI + chat agent definition
+│   └── app.py                     # Agno cookbook AGUI pattern (~30 lines)
 └── tests/
-    ├── integration/
-    │   ├── test_health.py
-    │   └── test_agui_stream.py
+    └── integration/
+        └── test_status.py         # GET /status only
 
-frontend/
-├── package.json
-├── next.config.ts
-├── .env.example
+frontend/                          # scaffolded from with-ag-ui example
+├── .env.example                   # NEXT_PUBLIC_AGUI_AGENT_URL=http://localhost:7777/agui
 ├── src/
-│   ├── app/
-│   │   ├── layout.tsx
-│   │   └── page.tsx
-│   ├── components/
-│   │   └── assistant-ui/
-│   │       └── thread.tsx
-│   └── lib/
-│       ├── runtime-provider.tsx   # HttpAgent + useAgUiRuntime
-│       └── config.ts              # NEXT_PUBLIC_AGUI_BACKEND_URL
+│   ├── app/page.tsx               # Thread + RuntimeProvider
+│   └── components/assistant-ui/   # from scaffold (Thread, etc.)
+└── package.json
 
-Makefile                 # install, dev, test, health, lint
-.github/workflows/ci.yml # same make targets as local
+Makefile
 ```
 
-**Structure Decision**: Standard web split (`frontend/` + `backend/`) chosen because assistant-ui requires a Node/React build and Agno AgentOS requires Python. Single Makefile at root for Principle X.
+**Deleted from prior plan (do not implement)**:
+- `frontend/src/lib/config.ts` — URL builder; use env URL directly in `HttpAgent`
+- `test_agui_stream.py` — parsing AG-UI SSE by hand; use browser E2E or trust protocol libs
+- Custom `runtime-provider.tsx` logic beyond scaffold + env + optional fixed `threadId`
 
 ## Complexity Tracking
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| Two runtimes (frontend + backend) | Browser UI vs Python agent runtime are independent compute units | Single-process cannot run Agno AgentOS inside the browser; embedding UI in Python (e.g. only Dojo) rejects user-mandated assistant-ui |
-| AG-UI protocol layer | assistant-ui AG-UI runtime requires protocol-compliant endpoint | Direct `/agents/stream` would need custom assistant-ui adapter; user chose assistant-ui + Agno AGUI path |
+| Item | Justification |
+|------|---------------|
+| frontend + backend | User-mandated stacks; browser cannot run Agno |
+| ~~AG-UI protocol layer~~ | **Not custom** — provided by Agno AGUI + assistant-ui react-ag-ui |
 
-## Phase 0 Output
-
-See [research.md](./research.md) — all NEEDS CLARIFICATION resolved.
-
-## Phase 1 Output
+## Phase 0 & Phase 1 Artifacts
 
 | Artifact | Path |
 |----------|------|
+| Research | [research.md](./research.md) |
 | Data model | [data-model.md](./data-model.md) |
-| Contracts | [contracts/ag-ui.openapi.yaml](./contracts/ag-ui.openapi.yaml) |
+| Contracts | [contracts/README.md](./contracts/README.md) |
 | Quickstart | [quickstart.md](./quickstart.md) |
 
-### Implementation notes (for `/speckit-tasks`)
+## Implementation Checklist (for `/speckit-tasks`)
 
-**Backend (`backend/src/app.py`)**:
+### Backend — copy Agno pattern, configure agent
+
 ```python
+# backend/src/app.py — pattern from Agno AG-UI docs / cookbook 16_agui
 from agno.agent import Agent
-from agno.models.openai import OpenAIResponses  # or configured model
+from agno.models.openai import OpenAIResponses
 from agno.os import AgentOS
 from agno.os.interfaces.agui import AGUI
 
 chat_agent = Agent(
-    id="chat-agent",
-    name="Chat Agent",
-    model=OpenAIResponses(id="gpt-4o"),  # configure per env
+    model=OpenAIResponses(id="gpt-4o"),
     instructions="Respond in the same language the user uses.",
-    # session history via fixed session_id in AG-UI runs
 )
 
-agent_os = AgentOS(
-    agents=[chat_agent],
-    interfaces=[AGUI(agent=chat_agent)],
-)
+agent_os = AgentOS(agents=[chat_agent], interfaces=[AGUI(agent=chat_agent)])
 app = agent_os.get_app()
+
+if __name__ == "__main__":
+    agent_os.serve(app="app:app", reload=True)
 ```
 
-Serve: `agent_os.serve(app="app:app", reload=True)` on port 7777.
+No additional routes. Health = `GET /status` (AGUI built-in). Chat = `POST /agui` (AGUI built-in).
 
-**Frontend (`runtime-provider.tsx`)**:
-- `const base = process.env.NEXT_PUBLIC_AGUI_BACKEND_URL`
-- `new HttpAgent({ url: `${base}/agui`, headers: { Accept: "text/event-stream" } })`
-- `useAgUiRuntime({ agent, onCancel: abort logic })`
-- Single thread UI — no `threadList` adapter.
+### Frontend — copy assistant-ui pattern, set env
 
-**Session**: Pass fixed `threadId` / session `global-v1` in AG-UI runs per data-model.
+```tsx
+// From with-ag-ui example — only env + single-thread trim
+const agent = useMemo(
+  () =>
+    new HttpAgent({
+      url: process.env.NEXT_PUBLIC_AGUI_AGENT_URL!, // full URL, e.g. http://localhost:7777/agui
+    }),
+  [],
+);
+const runtime = useAgUiRuntime({ agent });
+```
+
+Use scaffold `Thread` component. Do **not** add `threadList` adapter (single thread). Stream cancel on new message: use `useAgUiRuntime` default behavior / `onCancel` from scaffold if already present.
+
+### Global thread (spec FR-003a/b)
+
+Use AG-UI `threadId` consistently (e.g. constant `global-v1` in `HttpAgent` / runtime options if scaffold exposes it). Agno AGUI passes thread context to agent session — **do not** build a separate in-memory message store on top.
 
 ## Next Step
 
-Run **`/speckit-tasks`** to generate actionable implementation tasks from this plan and spec.
+Run **`/speckit-tasks`** to generate tasks aligned with this minimal integration plan.

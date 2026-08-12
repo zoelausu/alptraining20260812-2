@@ -1,11 +1,13 @@
 # Data Model: Agent Chat App
 
 **Feature**: `001-agent-chat-app`  
-**Date**: 2026-08-12
+**Date**: 2026-08-12 (rev. 2)
 
 ## Overview
 
-v1 uses **in-memory only** data on the backend (Agno agent session) and **ephemeral UI state** on the frontend. No database entities. Contracts are defined at HTTP boundaries (AG-UI protocol + status endpoint).
+**We do not own the chat data model** — it is defined by [ag-ui-protocol](https://github.com/ag-ui-protocol/ag-ui) (`Message`, `threadId`, SSE events) and implemented by assistant-ui runtime + Agno AGUI. This document maps spec requirements onto those existing types only.
+
+v1: in-memory Agno agent session + ephemeral assistant-ui UI state. No database.
 
 ## Entities
 
@@ -87,14 +89,12 @@ AgentOS
        └── Session (global-v1) holds run history in memory
 ```
 
-## AG-UI Boundary Types (reference)
+## AG-UI types (owned by ag-ui-protocol — do not redefine)
 
-Frontend/backend exchange uses `ag-ui-protocol` types at `POST /agui`:
+- **RunAgentInput**: `threadId`, `runId`, `messages[]` — see ag-ui-protocol repo
+- **SSE events**: `TEXT_MESSAGE_*`, `RUN_*` — parsed by `@assistant-ui/react-ag-ui`, emitted by Agno `AGUI`
 
-- **RunAgentInput**: `threadId`, `runId`, `messages[]`, `forwardedProps`, etc.
-- **Events (SSE)**: `TEXT_MESSAGE_START`, `TEXT_MESSAGE_CONTENT`, `TEXT_MESSAGE_END`, `RUN_ERROR`, etc.
-
-Detailed wire format: see `contracts/ag-ui.openapi.yaml` and [AG-UI protocol](https://github.com/ag-ui-protocol/ag-ui).
+See [contracts/README.md](./contracts/README.md) for links.
 
 ## Out of Scope (no entities)
 

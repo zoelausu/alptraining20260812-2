@@ -12,11 +12,11 @@
 
 ### Session 2026-08-12
 
-- Q: 使用者在同一個聊天 thread 中送出後續訊息時，backend 是否應將較早訊息作為 agent 回覆的上下文？ → A: 是 — backend 在 session 內以記憶體保存 thread 歷史，每次新訊息都帶上完整上下文。
+- Q: 使用者在同一個聊天 thread 中送出後續訊息時，backend 是否應將較早訊息作為 agent 回覆的上下文？ → A: 是 — 固定 `threadId=global-v1`；Agno 在程序記憶體中保留該 thread 的完整歷史，每次新訊息帶上完整上下文。
 - Q: 當 agent 正在串流回覆、回覆尚未完成時，使用者是否可以送出下一則訊息？ → A: 可以但取消 — 新訊息會中止目前串流並開始新回合。
 - Q: Agent 的回覆語言應如何處理？ → A: 跟隨輸入 — 使用者用什麼語言輸入，agent 就用什麼語言回覆。
 - Q: health/status endpoint 應檢查到哪個層級？ → A: 僅 HTTP — 只確認 backend 程序存活、endpoint 可回應。
-- Q: 在 v1 無登入、無資料庫的前提下，backend 如何識別同一使用者的 session？ → A: 單一全域 — backend 只維護一個 thread，所有請求共用（僅適合單人本地開發）。
+- Q: 在 v1 無登入、無資料庫的前提下，backend 如何識別同一使用者的 session？ → A: 單一全域 thread — 固定 `threadId=global-v1`，無 per-user / per-tab 隔離（僅適合單人本地開發）。
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -92,7 +92,7 @@
 - **FR-004a**: 當 agent 串流進行中，使用者 MUST 仍可送出新訊息；新訊息 MUST 中止目前串流並觸發以新訊息為起點的新一輪回覆（含已保存的 thread 上下文）。
 - **FR-005**: v1 MUST 僅使用單一聊天 thread（單一連續對話區，無多 thread 切換或管理）。
 - **FR-006**: Backend MUST 提供可檢查的 health/status endpoint，供外部判斷 backend 程序是否存活且 endpoint 可回應（v1 不要求驗證 agent/LLM 連線狀態）。
-- **FR-007**: 前端連線的 backend 位址 MUST 透過 environment variable 設定，無需修改原始碼即可變更。
+- **FR-007**: 前端連線的 backend 位址 MUST 透過 environment variable 設定，無需修改原始碼即可變更。聊天使用 `NEXT_PUBLIC_AGUI_AGENT_URL`（完整 `/agui` URL）；健康檢查與 Makefile/測試使用 `BACKEND_BASE_URL`（backend 根 URL，如 `http://localhost:7777`），兩者 MUST 指向同一 backend 實例。
 - **FR-008**: 系統 MUST 在 backend 錯誤或連線失敗時向使用者顯示可理解的回饋。
 - **FR-009**: v1 MUST NOT 包含使用者登入或身份驗證。
 - **FR-010**: v1 MUST NOT 使用資料庫或跨 session 持久化對話歷史。
@@ -110,7 +110,7 @@
 
 - **SC-001**: 使用者可在 30 秒內完成「開啟頁面 → 輸入繁體中文 → 送出 → 看到串流回覆開始出現」的完整流程。
 - **SC-002**: 在 backend 正常運作時，health/status endpoint 於 2 秒內回傳可解析的成功狀態（僅表示 HTTP 程序存活，不含 agent 可用性）。
-- **SC-003**: 變更 frontend environment variable 後，100% 的聊天與健康檢查請求送往新設定的 backend（以可重複的驗證步驟確認）。
+- **SC-003**: 變更 `BACKEND_BASE_URL` 與 `NEXT_PUBLIC_AGUI_AGENT_URL`（兩者同步指向新 backend）後，100% 的聊天（`/agui`）與健康檢查（`/status`）請求送往新設定的 backend（以可重複的驗證步驟確認）。
 - **SC-004**: 串流回覆期間，使用者可在回覆完成前看到文字逐步出現（非僅在完成後一次顯示）。
 - **SC-006**: 使用者以繁體中文輸入時，agent 回覆 MUST 以繁體中文呈現；使用者以其他語言輸入時，回覆 MUST 使用相同語言（可透過抽樣測試驗證）。
 - **SC-005**: Backend 無法連線時，使用者在 5 秒內收到可理解的錯誤回饋（非無限等待）。
@@ -118,9 +118,9 @@
 ## Assumptions
 
 - 目標使用者為開發者或內部測試人員，在本地單人環境使用；非對外 production 服務，不支援多使用者並發。
-- Backend 維護單一全域 in-memory thread，無 session ID、cookie 或 per-user 隔離機制。
+- Backend 維護單一全域 in-memory thread（`threadId=global-v1`），無 per-user session ID、cookie 或 per-tab 隔離機制。
 - 前端頁面重新整理後 UI 清空，但 backend 全域 thread 記憶體在程序重啟前仍保留。
-- 「Agent」指 backend 上負責產生回覆的邏輯；具體模型或供應商不在本規格範圍，由實作階段決定。
+- 「Agent」指 backend 上負責產生回覆的邏輯；v1 實作使用 Vercel AI Gateway（OpenAI-compatible API）路由至 `google/gemini-3.5-flash-lite`，不使用 direct OpenAI。
 - 網路連線穩定足以支援串流；極端離線情境以錯誤回饋處理即可。
 - 繁體中文涵蓋常用 CJK 字元顯示與輸入，無需額外語系切換功能；agent 回覆語言跟隨使用者輸入語言，非固定單一語系。
 - Health/status endpoint 無需認證（與 v1 無登入一致），且僅反映 backend HTTP 程序存活，不反映 agent/LLM 是否可用。

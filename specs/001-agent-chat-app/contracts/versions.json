@@ -1,0 +1,32 @@
+{
+  "description": "Pinned boundary contract versions for agent chat app v1 (Constitution Principle IV)",
+  "pinned_at": "2026-08-12",
+  "contracts": {
+    "ag-ui-protocol": {
+      "source": "https://github.com/ag-ui-protocol/ag-ui",
+      "npm_client": "@ag-ui/client",
+      "npm_version": "^0.1.0"
+    },
+    "assistant-ui-ag-ui": {
+      "source": "https://www.assistant-ui.com/docs/runtimes/ag-ui/quickstart",
+      "npm_runtime": "@assistant-ui/react-ag-ui",
+      "npm_version": "latest"
+    },
+    "agno-agui": {
+      "source": "https://docs.agno.com/agent-os/interfaces/ag-ui/introduction",
+      "python_package": "agno[os,agui]",
+      "python_version": ">=0.16.0"
+    }
+  },
+  "llm": {
+    "provider": "vercel-ai-gateway",
+    "gateway_base_url": "https://ai-gateway.vercel.sh/v1",
+    "model_id": "google/gemini-3.5-flash-lite",
+    "agno_adapter": "OpenAILike",
+    "docs": "https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions"
+  },
+  "endpoints": {
+    "chat": "POST /agui",
+    "health": "GET /status"
+  }
+}

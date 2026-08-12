@@ -1,7 +1,7 @@
 # Research: Agent Chat App
 
 **Feature**: `001-agent-chat-app`  
-**Date**: 2026-08-12 (rev. 2)
+**Date**: 2026-08-12 (rev. 4)
 
 ## Decision 0: Native AG-UI integration — no custom bridge (PRIMARY)
 
@@ -36,9 +36,9 @@
 
 ## Decision 3: Frontend — HttpAgent points at Agno `/agui`
 
-**Decision**: `NEXT_PUBLIC_AGUI_AGENT_URL=http://localhost:7777/agui` (full URL, assistant-ui convention).
+**Decision**: `NEXT_PUBLIC_AGUI_AGENT_URL=http://localhost:7777/agui` (full URL). Health/Makefile/tests use `BACKEND_BASE_URL=http://localhost:7777` (backend root). Both MUST target the same instance (SC-003).
 
-**Rationale**: Matches [with-ag-ui README](https://github.com/assistant-ui/assistant-ui/blob/main/examples/with-ag-ui/README.md). Health checks use separate `curl` to `/status` — not routed through chat client.
+**Rationale**: Matches [with-ag-ui README](https://github.com/assistant-ui/assistant-ui/blob/main/examples/with-ag-ui/README.md). Separates chat client URL from health/test tooling without hardcoding host/port in Makefile.
 
 ## Decision 4: Single global thread
 
@@ -60,7 +60,18 @@
 
 **Decision**: `GET /status` on AGUI router; HTTP 200 + parseable JSON = pass. No LLM probe.
 
-## Decision 8: Testing
+## Decision 9: LLM — Vercel AI Gateway + Gemini Flash Lite (not OpenAI direct)
+
+**Decision**: Backend agent uses Agno `OpenAILike` with:
+- `base_url`: `https://ai-gateway.vercel.sh/v1` (`AI_GATEWAY_BASE_URL`)
+- `api_key`: `AI_GATEWAY_API_KEY`
+- `id`: `google/gemini-3.5-flash-lite` (`AI_GATEWAY_MODEL_ID`)
+
+**Rationale**: User preference; Vercel AI Gateway exposes OpenAI-compatible Chat Completions API ([docs](https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions)). Agno has no native Gateway class yet; `OpenAILike` is the supported adapter — no custom bridge.
+
+**Rejected**: `OpenAIResponses` + `OPENAI_API_KEY`; direct `agno.models.google.Gemini` (bypasses user's gateway billing/routing).
+
+## Decision 10: Testing
 
 **Decision**:
 - Automated: `test_status.py` only (owned boundary we expose for spec FR-006).
@@ -70,4 +81,4 @@
 
 ## Resolved NEEDS CLARIFICATION
 
-All items resolved. Rev 2 adds explicit "no custom bridge" constraint.
+All items resolved. Rev 4 adds Vercel AI Gateway + Gemini Flash Lite model stack.

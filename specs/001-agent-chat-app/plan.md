@@ -38,15 +38,30 @@ assistant-ui Thread
 
 - Fixed `threadId` / session for global thread (via AG-UI `RunAgentInput` or Agno session — use what the protocol already carries).
 - Agent `instructions` for language-follow-input.
-- `NEXT_PUBLIC_AGUI_AGENT_URL` env → full AG-UI endpoint URL (assistant-ui convention).
+**Env configuration** (FR-007, SC-003):
+
+| Env var | Example | Used by |
+|---------|---------|---------|
+| `BACKEND_BASE_URL` | `http://localhost:7777` | `make health`, `test_status.py`, docs |
+| `NEXT_PUBLIC_AGUI_AGENT_URL` | `http://localhost:7777/agui` | Frontend `HttpAgent` |
+
+Both MUST target the same backend instance.
 
 ## Technical Context
 
 **Language/Version**: Python 3.11+ (backend), TypeScript / Node 20+ (frontend)
 
 **Primary Dependencies**:
-- Backend: `agno[os,agui]` + model provider (e.g. `openai`)
+- Backend: `agno[os,agui]` + Vercel AI Gateway via Agno `OpenAILike` (OpenAI-compatible Chat Completions API)
 - Frontend: `@assistant-ui/react`, `@assistant-ui/react-ag-ui`, `@ag-ui/client` (via with-ag-ui scaffold)
+
+**LLM configuration** (no direct OpenAI):
+
+| Env var | Default | Purpose |
+|---------|---------|---------|
+| `AI_GATEWAY_API_KEY` | — | Vercel AI Gateway credential |
+| `AI_GATEWAY_BASE_URL` | `https://ai-gateway.vercel.sh/v1` | Gateway OpenAI-compatible base URL |
+| `AI_GATEWAY_MODEL_ID` | `google/gemini-3.5-flash-lite` | Model slug passed to gateway |
 
 **Storage**: None — Agno agent in-memory session; assistant-ui runtime holds UI state
 
@@ -67,9 +82,10 @@ assistant-ui Thread
 | I. No distribute by default | Justified | Browser + AgentOS = independent compute; one backend process, no extra services |
 | II. Deletion over extension | **Strong pass** | Rev 2 removes custom URL builders, custom stream tests, redundant contract schemas |
 | III. Explicit deps | Pass | Env vars only; no hidden singletons |
-| IV. Contract at boundary | Pass | Boundary = ag-ui-protocol + Agno `/status`; local contract file is a pointer, not a redefinition |
+| IV. Contract at boundary | Pass | `contracts/versions.json` pins upstream protocol/package versions |
 | V. Test plumbing | Pass | Test `/status` boundary; E2E for chat; don't mock AG-UI libraries |
-| X. Commands | Pass | Makefile targets |
+| VI. Structured Events | Pass | T008: backend structured logs with `thread_id`/`run_id` on AGUI runs (v1 local dev scope) |
+| X. Commands | Pass | Makefile targets; `BACKEND_BASE_URL` for health/test |
 
 ## Project Structure
 
@@ -106,7 +122,7 @@ Makefile
 **Deleted from prior plan (do not implement)**:
 - `frontend/src/lib/config.ts` — URL builder; use env URL directly in `HttpAgent`
 - `test_agui_stream.py` — parsing AG-UI SSE by hand; use browser E2E or trust protocol libs
-- Custom `runtime-provider.tsx` logic beyond scaffold + env + optional fixed `threadId`
+- Custom `runtime-provider.tsx` **protocol/SSE logic** — allowed: scaffold wiring + env + fixed `threadId` + stream cancel + connection error handlers (no custom AG-UI event parsing)
 
 ## Complexity Tracking
 
@@ -130,13 +146,19 @@ Makefile
 
 ```python
 # backend/src/app.py — pattern from Agno AG-UI docs / cookbook 16_agui
+import os
+
 from agno.agent import Agent
-from agno.models.openai import OpenAIResponses
+from agno.models.openai import OpenAILike
 from agno.os import AgentOS
 from agno.os.interfaces.agui import AGUI
 
 chat_agent = Agent(
-    model=OpenAIResponses(id="gpt-4o"),
+    model=OpenAILike(
+        id=os.environ["AI_GATEWAY_MODEL_ID"],  # google/gemini-3.5-flash-lite
+        api_key=os.environ["AI_GATEWAY_API_KEY"],
+        base_url=os.environ.get("AI_GATEWAY_BASE_URL", "https://ai-gateway.vercel.sh/v1"),
+    ),
     instructions="Respond in the same language the user uses.",
 )
 
